@@ -1,0 +1,37 @@
+import sqlite3
+from scipy.stats import norm
+
+conn = sqlite3.connect('normal_dist.db')
+cursor = conn.cursor()
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS normal_probabilities (
+    z_value REAL PRIMARY KEY,
+    probability REAL
+)
+''')
+conn.commit()
+
+def get_probability(z):
+    cursor.execute('SELECT probability FROM normal_probabilities WHERE z_value=?', (z,))
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    prob = norm.cdf(z)
+    cursor.execute('INSERT INTO normal_probabilities (z_value, probability) VALUES (?, ?)', (z, prob))
+    conn.commit()
+    return prob
+
+while True:
+    choice = input("P(X < Z) value Estimator (Y-Continue/N-Stop): ").upper()
+    if choice == "Y":
+        mean = float(input("Enter Mean: "))
+        sd = float(input("Enter Standard Deviation: "))
+        test = float(input("Enter test data: "))
+        z = (test - mean) / sd
+        probability = get_probability(z)
+        print(f"Probability for P(X < Z): {probability}")
+    else:
+        break
+
+conn.close()
